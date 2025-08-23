@@ -1,0 +1,79 @@
+---
+title: "Cyclistic Bike-Share Analysis"
+author: "Swasthik M S"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# 1. Business Task  
+
+Cyclistic, a bike-share company, wants to design marketing strategies aimed at converting casual riders into annual members.  
+The goal of this analysis is to explore usage patterns between casual riders and members and provide actionable recommendations.  
+
+---
+
+# 2. Prepare & Load Data  
+
+```{r setup, message=FALSE, warning=FALSE}
+# Load libraries
+library(data.table)
+library(dplyr)
+library(ggplot2)
+
+# Load data
+trips <- fread("C:/Users/MI/OneDrive/Desktop/Cleaned_bicycledata.csv", header = FALSE)
+
+# Add column names
+setnames(trips, c("ride_id", "rideable_type", "started_at", "ended_at", 
+                  "start_station_name", "start_station_id", "end_station_name", 
+                  "end_station_id", "start_lat", "start_lng", "end_lat", "end_lng", 
+                  "member_casual", "start_time", "end_time", "ride_length_minutes", 
+                  "day_of_week"))
+
+# Remove double quotes from character columns
+trips <- trips %>% 
+  mutate(across(where(is.character), ~ gsub('"', '', .)))
+ggplot(trips, aes(x = rideable_type, fill = member_casual)) +
+  geom_bar(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Rides by Bike Type and Rider Type", 
+       x = "Bike Type", y = "Number of Rides")
+ggplot(trips, aes(x = day_of_week, fill = member_casual)) +
+  geom_bar(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Rides by Day of the Week", 
+       x = "Day", y = "Number of Rides")
+ggplot(trips, aes(x = ride_length_minutes, fill = member_casual)) +
+  geom_histogram(binwidth = 5, alpha = 0.7, position = "identity") +
+  xlim(0, 100) +
+  theme_minimal() +
+  labs(title = "Distribution of Ride Lengths", 
+       x = "Ride Length (minutes)", y = "Count")
+avg_length <- trips %>%
+  group_by(member_casual) %>%
+  summarise(avg_ride_length = mean(ride_length_minutes, na.rm = TRUE))
+
+avg_length
+
+ggplot(avg_length, aes(x = member_casual, y = avg_ride_length, fill = member_casual)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Ride Length by Member Type",
+       x = "Member Type", y = "Average Ride Length (minutes)") +
+  theme_minimal()
+top_stations <- trips %>%
+  group_by(start_station_name, member_casual) %>%
+  summarise(total_rides = n()) %>%
+  arrange(desc(total_rides)) %>%
+  slice_head(n = 10)
+
+ggplot(top_stations, aes(x = reorder(start_station_name, total_rides), 
+                         y = total_rides, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(title = "Top 10 Start Stations by User Type", 
+       x = "Station", y = "Number of Rides") +
+  theme_minimal()
+
+
+
+
